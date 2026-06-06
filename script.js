@@ -88,7 +88,7 @@ function submitAnswer(score) {
     state.seen.push(questionIndex);
   }
 
-  const answerItem = { tx: currentQuestion.tx, sc: score };
+  const answerItem = { tx: currentQuestion.tx, sc: String(score) };
   const existingIndex = state.answers.findIndex((item) => item.tx === answerItem.tx);
   if (existingIndex >= 0) {
     state.answers[existingIndex] = answerItem;
@@ -116,7 +116,7 @@ function resetProgress() {
 async function loadQuestions() {
   updateStatus("Загрузка вопросов...");
 
-  const response = await fetch("./data.jsonl", { cache: "no-store" });
+  const response = await fetch("./data.jsonl");
   if (!response.ok) {
     throw new Error(`Не удалось загрузить data.jsonl: ${response.status}`);
   }

@@ -52,7 +52,8 @@ function renderQuestion(question) {
     button.type = "button";
     button.className = "answer-btn";
     button.textContent = `${i + 1}. ${text}`;
-    button.addEventListener("click", () => submitAnswer(i.toString()));
+    button.dataset.index = i;
+    button.addEventListener("click", () => handleAnswer(i));
     answersEl.appendChild(button);
   }
 }
@@ -97,7 +98,46 @@ function submitAnswer(score) {
   }
 
   saveState();
-  pickNextQuestion();
+}
+
+function handleAnswer(index) {
+  if (!currentQuestion) return;
+
+  const correctIndex = parseInt(currentQuestion.cr, 10);
+  const buttons = Array.from(answersEl.querySelectorAll("button"));
+
+  // Disable buttons to prevent multiple clicks
+  buttons.forEach((b) => (b.disabled = true));
+
+  const clicked = buttons.find((b) => Number(b.dataset.index) === index);
+  if (clicked) {
+    if (index === correctIndex) {
+      clicked.classList.add("correct");
+      updateStatus("Правильно!");
+    } else {
+      clicked.classList.add("incorrect");
+      updateStatus("Неправильно.");
+    }
+  }
+
+  // Highlight the correct answer
+  const correctButton = buttons.find((b) => Number(b.dataset.index) === correctIndex);
+  if (correctButton) correctButton.classList.add("correct");
+
+  // Save answer (store selection)
+  submitAnswer(index.toString());
+
+  // Show the correct answer text
+  const correctText = currentQuestion[`a${correctIndex}`] || "";
+  updateStatus(`Правильный ответ: ${correctIndex + 1}. ${correctText}`);
+
+  // After a short delay, move to next question
+  setTimeout(() => {
+    // hide results output if visible
+    resultsOutputEl.classList.add("hidden");
+    resultsOutputEl.textContent = "";
+    pickNextQuestion();
+  }, 2000);
 }
 
 function showResults() {
@@ -114,14 +154,12 @@ function resetProgress() {
 }
 
 async function loadQuestions() {
-  updateStatus("Загрузка вопросов...");
+  const raw = `{"tx":"Что такое тест-кейс?","a0":"Описание шага и ожидаемого результата","a1":"Ошибка в коде","a2":"Скриншот интерфейса","a3":"Список пользователей","cr":"0"}
+{"tx":"Какой вид тестирования проверяет взаимодействие модулей?","a0":"Unit","a1":"Integration","a2":"Smoke","a3":"Regression","cr":"1"}
+{"tx":"Что означает 'regression testing'?","a0":"Проверка производительности","a1":"Проверка безопасности","a2":"Повторная проверка после изменений","a3":"Проверка UI макета","cr":"2"}
+`
 
-  const response = await fetch("./data.jsonl", { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`Не удалось загрузить data.jsonl: ${response.status}`);
-  }
 
-  const raw = await response.text();
   questions = raw
     .split("\n")
     .map((line) => line.trim())
